@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat WebSocket</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    #chat-container {
+      background-color: #fff;
+      border-radius: 8px;
+      width: 400px;
+      height: 500px;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    #message-container {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #messageInput {
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 20px;
+      width: 100%;
+      margin-top: 10px;
+      outline: none;
+      background-color: #f0f0f0;
+    }
+    #sendButton {
+      border: none;
+      padding: 12px;
+      background-color: #25d366;
+      border-radius: 20px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #sendButton:hover {
+      background-color: #128c7e;
+    }
+    .message {
+      margin: 0;
+      padding: 10px;
+      border-radius: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .sent {
+      background-color: #dcf8c6;
+      align-self: flex-end;
+    }
+    .received {
+      background-color: #f1f1f1;
+      align-self: flex-start;
+    }
+    .no-user {
+      text-align: center;
+      margin-top: 20px;
+      color: #999;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="message-container"></div>
+    <input type="text" id="messageInput" placeholder="Digite uma mensagem..." />
+    <button id="sendButton" onclick="sendMessage()">Enviar</button>
+    <div id="noUser" class="no-user" style="display: none;">Você está sozinho na conversa. Espere outra pessoa entrar.</div>
+  </div>
+
+  <script>
+    const socket = new WebSocket('ws://localhost:8080/ws');
+    const messageContainer = document.getElementById('message-container');
+    const messageInput = document.getElementById('messageInput');
+    const noUserMessage = document.getElementById('noUser');
+
+    // Quando a conexão WebSocket é aberta
+    socket.onopen = () => {
+      console.log('Conexão WebSocket estabelecida!');
+    };
+
+    // Quando uma mensagem for recebida do servidor
+    socket.onmessage = (event) => {
+      const message = event.data;
+      if (message === "Você está sozinho na conversa. Espere outra pessoa entrar.") {
+        noUserMessage.style.display = 'block'; // Exibe a mensagem de "sozinho"
+      } else {
+        noUserMessage.style.display = 'none'; // Esconde a mensagem de "sozinho"
+        displayMessage(message, 'received');
+      }
+    };
+
+    // Quando a conexão for fechada
+    socket.onclose = () => {
+      console.log('Conexão WebSocket fechada');
+    };
+
+    // Quando ocorrer um erro na conexão WebSocket
+    socket.onerror = (error) => {
+      console.error('Erro WebSocket: ', error);
+    };
+
+    // Função para enviar a mensagem
+    function sendMessage() {
+      const message = messageInput.value;
+      if (message) {
+        socket.send(message); // Envia a mensagem para o servidor
+        displayMessage(message, 'sent'); // Exibe a mensagem como enviada
+        messageInput.value = ''; // Limpa o campo de input
+      }
+    }
+
+    // Função para exibir a mensagem no chat
+    function displayMessage(message, type) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message', type);
+      messageElement.textContent = message;
+      messageContainer.appendChild(messageElement);
+      messageContainer.scrollTop = messageContainer.scrollHeight; // Desce até a última mensagem
+    }
+
+    // Adiciona um event listener para enviar a mensagem ao pressionar Enter
+    messageInput.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();  // Impede o comportamento padrão (como criar uma nova linha)
+        sendMessage();  // Chama a função de envio
+      }
+    });
+  </script>
+</body>
+</html>
